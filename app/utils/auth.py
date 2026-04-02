@@ -1,6 +1,6 @@
 # app/utils/auth.py
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt, JWTError
 import os
 from typing import Optional, Dict, Any
@@ -18,8 +18,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 # debug flag (set AUTH_DEBUG=true in env to enable)
 AUTH_DEBUG = os.getenv("AUTH_DEBUG", "false").lower() in ("1", "true", "yes")
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # keep oauth2_scheme for docs (Swagger) but we will also accept token from cookie
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -38,11 +36,18 @@ def _truncate_token(token: str, head: int = 8, tail: int = 6) -> str:
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except ValueError:
+        # Invalid hash format should behave like a failed password check.
+        return False
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
