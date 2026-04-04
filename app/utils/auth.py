@@ -60,6 +60,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode = data.copy()
     now = datetime.now(timezone.utc)
     expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    
+    print("TOKEN IAT:", int(now.timestamp()))
+    print("TOKEN EXP:", int(expire.timestamp()))
 
     # include issued-at and expiry as numeric timestamps (standard)
     to_encode.update({"iat": int(now.timestamp()), "exp": int(expire.timestamp())})
@@ -74,7 +77,15 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     Decode JWT token and return payload dict or None if invalid/expired.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": True}, leeway=300)
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={
+                "verify_exp": True
+            },
+            audience=None
+        )
         return payload
     except JWTError as e:
         _debug("JWT decode error:", repr(e))
