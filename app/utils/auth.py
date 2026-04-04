@@ -1,5 +1,5 @@
 # app/utils/auth.py
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import jwt, JWTError
 import os
@@ -132,7 +132,10 @@ def get_current_user_optional(
         return None
 
     _debug("Raw token (truncated):", _truncate_token(token))
+    print("SERVER UTC NOW:", datetime.now(timezone.utc).timestamp())
+
     payload = decode_access_token(token)
+    print("TOKEN EXP:", payload.get("exp"))
     _debug("Decoded payload:", payload)
     if not payload:
         _debug("Token decode returned no payload (invalid/expired)")
