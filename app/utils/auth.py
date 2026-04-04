@@ -58,7 +58,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     Returns encoded JWT string.
     """
     to_encode = data.copy()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
     # include issued-at and expiry as numeric timestamps (standard)
@@ -74,7 +74,7 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     Decode JWT token and return payload dict or None if invalid/expired.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": True}, leeway=300)
         return payload
     except JWTError as e:
         _debug("JWT decode error:", repr(e))
@@ -135,12 +135,12 @@ def get_current_user_optional(
     print("SERVER UTC NOW:", datetime.now(timezone.utc).timestamp())
 
     payload = decode_access_token(token)
-    print("TOKEN EXP:", payload.get("exp"))
     _debug("Decoded payload:", payload)
     if not payload:
         _debug("Token decode returned no payload (invalid/expired)")
         return None
 
+    print("TOKEN EXP:", payload.get("exp"))
     user_id = payload.get("sub")
     if not user_id:
         _debug("Token payload missing 'sub' claim:", payload)
