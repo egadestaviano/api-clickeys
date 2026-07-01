@@ -1,4 +1,4 @@
-# app/main.py
+﻿# app/main.py
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -8,10 +8,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from sqlalchemy import text
 
 load_dotenv()
 
 from app.middleware.request_id import RequestIDMiddleware
+from app.utils.database import engine
 from app.utils.response import (
     error_response,
     validation_error_response,
@@ -31,10 +33,27 @@ api_router.include_router(cart.router)
 api_router.include_router(order.router)
 app.include_router(api_router)
 
+# health
+@app.get("/api/health")
+def health_check():
+    database_ok = False
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        database_ok = True
+    except Exception:
+        database_ok = False
+
+    return {
+        "status": "ok" if database_ok else "degraded",
+        "api": True,
+        "database": database_ok,
+    }
+
 # root
 @app.get("/")
 def root():
-    return {"message": "FastAPI E-COMMERCE started successfully 🚀"}
+    return {"message": "FastAPI E-COMMERCE started successfully ðŸš€"}
 
 # add middleware
 app.add_middleware(RequestIDMiddleware)
