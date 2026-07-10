@@ -1,6 +1,7 @@
 import uuid
 from sqlalchemy import Column, String, ForeignKey, Enum, DECIMAL, Text, DateTime, Integer
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 from app.utils.database import Base
@@ -14,8 +15,8 @@ class OrderStatus(str, enum.Enum):
     cancelled = "cancelled"
     
 class PaymentMethod(str, enum.Enum):
-    cod = "cod"
-    bank_transfer = "bank_transfer"
+    delivery = "delivery"
+    stripe = "stripe"
     
 # schema
 class Order(Base):
@@ -25,6 +26,10 @@ class Order(Base):
     user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
     status = Column(Enum(OrderStatus), default=OrderStatus.pending, nullable=False)
     payment_method = Column(Enum(PaymentMethod), nullable=False)
+    payment_provider = Column(String(36), nullable=True)
+    stripe_checkout_session_id = Column(String(255), nullable=True, unique=True, index=True)
+    stripe_payment_intent_id = Column(String(255), nullable=True, index=True)
+    stripe_customer_id = Column(String(255), nullable=True, index=True)
     total_amount = Column(DECIMAL(12, 2), nullable=False)
 
     # shipping info
@@ -36,6 +41,7 @@ class Order(Base):
     phone = Column(String(20), nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     user = relationship("User", back_populates="orders")

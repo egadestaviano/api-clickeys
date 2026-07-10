@@ -6,6 +6,17 @@ from typing import List, Optional
 from decimal import Decimal
 from app.models.order import OrderStatus, PaymentMethod
 
+# ---------------- PRODUCT SNAPSHOT ----------------
+class OrderItemProduct(BaseModel):
+    id: uuid.UUID
+    name: str
+    price: Decimal
+    image_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 # ---------------- ORDER ITEM ----------------
 class OrderItemBase(BaseModel):
     product_id: uuid.UUID
@@ -19,6 +30,7 @@ class OrderItemCreate(OrderItemBase):
 
 class OrderItem(OrderItemBase):
     id: uuid.UUID
+    product: Optional[OrderItemProduct] = None
 
     class Config:
         from_attributes = True
@@ -45,9 +57,18 @@ class OrderCreate(OrderBase):
 class Order(OrderBase):
     id: uuid.UUID
     status: OrderStatus
+    payment_provider: Optional[str] = None
+    stripe_checkout_session_id: Optional[str] = None
+    stripe_payment_intent_id: Optional[str] = None
+    stripe_customer_id: Optional[str] = None
     total_amount: Decimal
     created_at: datetime
-    items: List[OrderItem] = []
+    updated_at: Optional[datetime] = None
+    items: List[OrderItem] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus

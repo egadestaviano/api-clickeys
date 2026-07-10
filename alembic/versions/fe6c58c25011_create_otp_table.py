@@ -45,12 +45,12 @@ def upgrade() -> None:
     if 'carts_user_id_fkey' in fk_names:
         op.drop_constraint('carts_user_id_fkey', 'carts', type_='foreignkey')
 
-    # op.alter_column(
-    #     'carts', 'user_id',
-    #     existing_type=sa.String(length=36),
-    #     type_=sa.String(length=225),
-    #     existing_nullable=True
-    # )
+    op.alter_column(
+        'carts', 'user_id',
+        existing_type=sa.String(length=36),
+        type_=sa.String(length=225),
+        existing_nullable=True
+    )
 
     op.create_foreign_key(
         'carts_user_id_fkey',
