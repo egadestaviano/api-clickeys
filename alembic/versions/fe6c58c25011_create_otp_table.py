@@ -40,10 +40,12 @@ def upgrade() -> None:
     # Modify carts.user_id safely
     conn = op.get_bind()
     inspector = inspect(conn)
-    fk_names = [fk['name'] for fk in inspector.get_foreign_keys('carts')]
+    fk_list = inspector.get_foreign_keys('carts')
 
-    if 'carts_user_id_fkey' in fk_names:
-        op.drop_constraint('carts_user_id_fkey', 'carts', type_='foreignkey')
+    # Drop any existing FK on carts that references user_id
+    for fk in fk_list:
+        if 'user_id' in fk.get('constrained_columns', []):
+            op.drop_constraint(fk['name'], 'carts', type_='foreignkey')
 
     op.alter_column(
         'carts', 'user_id',
@@ -64,10 +66,12 @@ def downgrade() -> None:
     # Downgrade carts.user_id safely
     conn = op.get_bind()
     inspector = inspect(conn)
-    fk_names = [fk['name'] for fk in inspector.get_foreign_keys('carts')]
+    fk_list = inspector.get_foreign_keys('carts')
 
-    if 'carts_user_id_fkey' in fk_names:
-        op.drop_constraint('carts_user_id_fkey', 'carts', type_='foreignkey')
+    # Drop any existing FK on carts that references user_id
+    for fk in fk_list:
+        if 'user_id' in fk.get('constrained_columns', []):
+            op.drop_constraint(fk['name'], 'carts', type_='foreignkey')
 
     op.alter_column(
         'carts', 'user_id',
