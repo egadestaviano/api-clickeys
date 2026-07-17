@@ -9,7 +9,8 @@ from app.utils.database import SessionLocal
 from app.models import Order as OrderModel, OrderItem as OrderItemModel, Product as ProductModel, User as UserModel
 from app.models.order import OrderStatus
 from app.schemas.order import Order as OrderSchema, OrderStatusUpdate
-from app.schemas.user import User as UserSchema, AdminUserUpdate
+from app.schemas.user import User as UserSchema, AdminUserUpdate, AdminUserCreate
+from app.utils.auth import hash_password as get_password_hash
 from app.schemas.response import SuccessResponse, ErrorResponse
 from app.utils.response import success_response, error_response
 from app.utils.auth import require_admin
@@ -74,6 +75,53 @@ def _apply_order_status(
         metadata={"request_id": getattr(request.state, "request_id", None)},
     )
 
+
+@router.post(
+    "/customers",
+    response_model=SuccessResponse[UserSchema],
+    responses={400: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def create_customer(
+    payload: AdminUserCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: UserModel = Depends(require_admin),
+):
+    if not payload.name or not payload.email or not payload.password:
+        return error_response(
+            message="Name, email, and password are required",
+            code=400,
+            metadata={"request_id": getattr(request.state, "request_id", None)},
+        )
+
+    existing = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if existing:
+        return error_response(
+            message="Email already registered",
+            code=400,
+            metadata={"request_id": getattr(request.state, "request_id", None)},
+        )
+
+    hashed_password = get_password_hash(payload.password)
+
+    new_customer = UserModel(
+        name=payload.name,
+        email=payload.email,
+        password=hashed_password,
+        phone=payload.phone,
+        is_active=payload.is_active if payload.is_active is not None else True,
+        role="customer",
+    )
+
+    db.add(new_customer)
+    db.commit()
+    db.refresh(new_customer)
+
+    return success_response(
+        data=_serialize_user(new_customer),
+        message="Customer created successfully",
+        metadata={"request_id": getattr(request.state, "request_id", None)},
+    )
 
 @router.get(
     "/customers",

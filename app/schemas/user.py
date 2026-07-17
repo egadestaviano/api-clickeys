@@ -28,6 +28,13 @@ class AdminUserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
 
+class AdminUserCreate(BaseModel):
+    name: str = Field(..., max_length=255)
+    phone: Optional[str] = None
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    is_active: Optional[bool] = None
+
 
 class User(UserBase):
     id: uuid.UUID
